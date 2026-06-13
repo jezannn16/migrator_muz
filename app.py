@@ -29,7 +29,9 @@ YT_THREAD = None
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    resp = app.make_response(render_template("index.html"))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return resp
 
 
 # ---------------- общее состояние ----------------

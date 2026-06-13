@@ -1,6 +1,8 @@
 # секреты и пользовательские данные — НИКОГДА не коммитить
 browser.json
 oauth.json
+yandex_token.json
+yt_client.json
 headers_auth.json
 *.token
 .env

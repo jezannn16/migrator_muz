@@ -7,14 +7,30 @@
 """
 
 import os
+import secrets
 import threading
 import webbrowser
 
-from flask import Flask, request, jsonify, render_template, send_file, abort
+from flask import Flask, request, jsonify, render_template, send_file, abort, Response
 
 import core
 
 app = Flask(__name__)
+
+# Пароль-гейт для публичного хостинга (Render). Если APP_PASSWORD не задан
+# (локальный запуск) — гейт выключен. Логин любой, пароль = APP_PASSWORD.
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
+
+
+@app.before_request
+def _require_password():
+    if not APP_PASSWORD:
+        return None
+    auth = request.authorization
+    if not auth or not secrets.compare_digest((auth.password or ""), APP_PASSWORD):
+        return Response("Требуется пароль.", 401,
+                        {"WWW-Authenticate": 'Basic realm="ymusic-migrator"'})
+    return None
 
 # фоновые состояния (один процесс — один пользователь)
 STATUS = core.Status()

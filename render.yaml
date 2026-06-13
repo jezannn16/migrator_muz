@@ -1,0 +1,16 @@
+# Render Blueprint — личный деплой (один пользователь, пароль-гейт).
+# ВАЖНО: workers=1 обязателен — состояние и токены глобальные в памяти/на диске,
+# несколько воркеров их разорвут.
+services:
+  - type: web
+    name: ymusic-migrator
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 8 --timeout 120 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
+      - key: APP_PASSWORD          # пароль на вход (Basic Auth). Задай в дашборде.
+        sync: false

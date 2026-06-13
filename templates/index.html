@@ -110,34 +110,34 @@
   <div class="card">
     <div class="step"><span class="num" id="n2">2</span> Вход в YouTube Music
       <span class="badge" id="badge2">не выполнен</span></div>
-    <p class="hint">Нужен <b>свой</b> Google OAuth-клиент (один раз, бесплатно). Вставь его <code>client_id</code> и <code>client_secret</code>, нажми «Войти», введи код на странице Google.</p>
-    <details open>
-      <summary>Как получить client_id и client_secret (1 раз)</summary>
+    <div style="background:rgba(255,204,0,.12);border:1px solid var(--warn);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#ffe08a">
+      ⚠ Рабочий способ — <b>вход по заголовкам</b>. Google OAuth у ytmusicapi сейчас отдаёт HTTP 400 на все запросы (баг библиотеки).
+    </div>
+    <p class="hint">Вход по заголовкам: открой <a href="https://music.youtube.com" target="_blank">music.youtube.com</a> залогиненным → <b>F12</b> → вкладка <b>Network</b> → в фильтр впиши <code>browse</code> → кликни любой запрос <code>/browse</code> → <b>Headers</b> → блок <b>Request Headers</b> → скопируй весь блок сюда.</p>
+    <label>Request Headers</label>
+    <textarea id="ytHeaders" placeholder="accept: */*&#10;authorization: SAPISIDHASH ...&#10;cookie: VISITOR_INFO1_LIVE=...; ..."></textarea>
+    <div style="margin-top:12px"><button class="yt" id="btnYtManual">Войти по заголовкам</button></div>
+    <div class="msg" id="msgYt"></div>
+    <details>
+      <summary>Запасной способ: вход через Google OAuth (сейчас часто не работает)</summary>
       <ol class="hint" style="margin-top:8px;padding-left:18px">
         <li>Открой <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> → создай проект.</li>
         <li>APIs &amp; Services → Library → включи <b>YouTube Data API v3</b>.</li>
-        <li>APIs &amp; Services → OAuth consent screen → тип <b>External</b>, добавь себя в Test users.</li>
+        <li>OAuth consent screen / Audience → тип <b>External</b>, добавь себя в <b>Test users</b>.</li>
         <li>Credentials → Create credentials → OAuth client ID → тип <b>TVs and Limited Input devices</b>.</li>
         <li>Скопируй <b>Client ID</b> и <b>Client secret</b> сюда.</li>
       </ol>
-    </details>
-    <div class="row">
-      <div><label>Client ID</label><input type="text" id="ytCid" placeholder="...apps.googleusercontent.com"></div>
-      <div><label>Client secret</label><input type="password" id="ytCsec" placeholder="GOCSPX-..." autocomplete="off"></div>
-    </div>
-    <div style="margin-top:12px"><button class="yt" id="btnYt">Войти через Google</button></div>
-    <div class="codebox hidden" id="ytCode">
-      <div class="lbl">Открой страницу и введи код:</div>
-      <div class="code" id="ytUserCode">—</div>
-      <a class="btnlink" id="ytUrl" href="#" target="_blank">Открыть google.com/device ↗</a>
-      <div class="hint" style="margin-top:10px"><span class="spin"></span>Жду подтверждения…</div>
-    </div>
-    <div class="msg" id="msgYt"></div>
-    <details>
-      <summary>Войти вручную по заголовкам (запасной способ)</summary>
-      <p class="hint"><a href="https://music.youtube.com" target="_blank">music.youtube.com</a> → F12 → Network → фильтр <code>browse</code> → любой запрос <code>/browse</code> → Request Headers → скопируй всё сюда.</p>
-      <textarea id="ytHeaders" placeholder="cookie: ...&#10;authorization: ..."></textarea>
-      <div style="margin-top:10px"><button class="ghost" id="btnYtManual">Сохранить заголовки</button></div>
+      <div class="row">
+        <div><label>Client ID</label><input type="text" id="ytCid" placeholder="...apps.googleusercontent.com"></div>
+        <div><label>Client secret</label><input type="password" id="ytCsec" placeholder="GOCSPX-..." autocomplete="off"></div>
+      </div>
+      <div style="margin-top:12px"><button class="ghost" id="btnYt">Войти через Google</button></div>
+      <div class="codebox hidden" id="ytCode">
+        <div class="lbl">Открой страницу и введи код:</div>
+        <div class="code" id="ytUserCode">—</div>
+        <a class="btnlink" id="ytUrl" href="#" target="_blank">Открыть google.com/device ↗</a>
+        <div class="hint" style="margin-top:10px"><span class="spin"></span>Жду подтверждения…</div>
+      </div>
     </details>
   </div>
 

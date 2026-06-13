@@ -263,13 +263,18 @@ def setup_yt_headers(headers_raw):
 
 
 def _make_yt_client():
-    """Строим YTMusic из доступной авторизации (OAuth приоритетнее заголовков)."""
+    """Строим YTMusic из доступной авторизации.
+
+    Заголовки (browser.json) приоритетнее OAuth: OAuth-клиент 'TV/Limited Input'
+    у ytmusicapi сейчас отдаёт HTTP 400 на все запросы (upstream issue #676),
+    поэтому браузерная авторизация — основной рабочий путь.
+    """
     from ytmusicapi import YTMusic
+    if os.path.exists(BROWSER_FILE):
+        return YTMusic(BROWSER_FILE)
     cid, csec = load_yt_client()
     if os.path.exists(YT_OAUTH_FILE) and cid and csec:
         return YTMusic(YT_OAUTH_FILE, oauth_credentials=_oauth_credentials(cid, csec))
-    if os.path.exists(BROWSER_FILE):
-        return YTMusic(BROWSER_FILE)
     raise RuntimeError("Нет авторизации YouTube Music.")
 
 

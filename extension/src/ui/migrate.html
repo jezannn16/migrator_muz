@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Yandex → YT Music</title>
+<style>
+  :root{--bg:#0f1115;--card:#181b22;--card2:#1f232c;--line:#2a2f3a;--txt:#e7eaf0;--muted:#9aa3b2;--accent:#ff3b30;--accent2:#ff5b54;--ok:#34c759;--ya:#ffcc00;--yt:#ff0033}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:820px;margin:0 auto;padding:28px 18px 80px}
+  h1{font-size:23px;margin:0 0 4px}.sub{color:var(--muted);margin:0 0 22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .step{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;margin-bottom:12px}
+  .badge{font-size:12px;padding:2px 9px;border-radius:20px;background:var(--card2);border:1px solid var(--line);color:var(--muted);margin-left:auto}
+  .badge.ok{background:rgba(52,199,89,.15);border-color:var(--ok);color:var(--ok)}
+  label{display:block;color:var(--muted);font-size:13px;margin:10px 0 6px}
+  input[type=text],select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 12px;font:inherit}
+  button{cursor:pointer;border:none;border-radius:9px;padding:11px 18px;font:inherit;font-weight:600;color:#fff;background:var(--accent)}
+  button:hover{background:var(--accent2)}button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+  button.ya{background:var(--ya);color:#1a1a1a}
+  .hint{color:var(--muted);font-size:13px;margin:6px 0 0}
+  .row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1;min-width:150px}
+  .bar{height:12px;background:var(--card2);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+  .bar>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  .stat{flex:1;min-width:84px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center}
+  .stat b{display:block;font-size:21px}.stat span{color:var(--muted);font-size:12px}
+  .stat.ok b{color:var(--ok)}.stat.miss b{color:var(--accent2)}
+  .cur{color:var(--muted);font-size:13px;min-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .log{background:#0b0d11;border:1px solid var(--line);border-radius:10px;padding:10px;height:200px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#c7cdd8;white-space:pre-wrap}
+  .log .ok{color:var(--ok)}.log .miss{color:var(--ya)}.log .err{color:var(--accent2)}
+  a{color:var(--accent2)}.hidden{display:none}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}th{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Перенос в YouTube Music</h1>
+  <p class="sub">Из Яндекс.Музыки — в том же порядке. Всё в браузере, без вставки токенов.</p>
+
+  <div class="card">
+    <div class="step">1 · Вход<span class="badge" id="authBadge">проверка…</span></div>
+    <div class="row">
+      <div><div class="hint" id="ytStatus">YouTube: …</div></div>
+      <div><div class="hint" id="yaStatus">Яндекс: …</div></div>
+    </div>
+    <p class="hint" id="ytHint">YouTube берётся из текущей сессии — войди на <a href="https://music.youtube.com" target="_blank">music.youtube.com</a> в этом браузере.</p>
+    <div style="margin-top:10px"><button class="ya" id="yaLogin">Войти через Яндекс</button></div>
+  </div>
+
+  <div class="card">
+    <div class="step">2 · Настройки</div>
+    <div class="row">
+      <div><label>Название плейлиста</label><input type="text" id="plName" value="Yandex Likes"></div>
+      <div><label>Строгость: <span id="thrVal">0.62</span></label>
+        <input type="range" id="thr" min="0.45" max="0.85" step="0.01" value="0.62" style="width:100%"></div>
+    </div>
+    <label style="margin-top:10px"><input type="checkbox" id="reset"> Начать заново (сбросить прогресс)</label>
+  </div>
+
+  <div class="card" style="text-align:center">
+    <button id="start" style="font-size:16px;padding:13px 36px">▶ Перенести лайки</button>
+    <button id="stop" class="ghost hidden" style="font-size:16px;padding:13px 36px">■ Остановить</button>
+    <div class="hint" id="startMsg"></div>
+  </div>
+
+  <div class="card hidden" id="prog">
+    <div class="step">Прогресс<span class="badge" id="phase">—</span></div>
+    <div class="bar"><span id="fill"></span></div>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b><span>всего</span></div>
+      <div class="stat"><b id="sProc">0</b><span>обработано</span></div>
+      <div class="stat ok"><b id="sOk">0</b><span>найдено</span></div>
+      <div class="stat miss"><b id="sMiss">0</b><span>не найдено</span></div>
+    </div>
+    <div class="cur" id="cur"></div>
+    <div id="plLink" style="margin:8px 0"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card hidden" id="missCard">
+    <div class="step">Не найдено</div>
+    <table><thead><tr><th>Трек</th><th>Причина</th></tr></thead><tbody id="missBody"></tbody></table>
+  </div>
+</div>
+<script type="module" src="./migrate.ts"></script>
+</body>
+</html>

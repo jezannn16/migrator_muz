@@ -13,7 +13,7 @@ export default defineManifest({
   ],
   background: { service_worker: "src/background/index.ts", type: "module" },
   action: { default_title: "Yandex → YT Music" },
-  options_ui: { page: "src/ui/auth-test.html", open_in_tab: true },
+  options_ui: { page: "src/ui/migrate.html", open_in_tab: true },
   content_scripts: [
     {
       matches: ["https://music.yandex.ru/*", "https://*.music.yandex.ru/*"],

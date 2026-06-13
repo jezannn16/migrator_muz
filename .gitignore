@@ -31,3 +31,8 @@ Thumbs.db
 
 # claude code local
 .claude/
+
+# extension build artifacts
+extension/node_modules/
+extension/dist/
+.npmcache/

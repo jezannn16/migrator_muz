@@ -253,9 +253,33 @@ def _store_yt_token(token, cred):
             json.dump(clean, f, indent=1)
 
 
+def _curl_to_headers(text):
+    """Вытаскивает заголовки и cookie из команды 'Copy as cURL' (bash или cmd)."""
+    s = text.replace("\\\n", " ").replace("^\n", " ").replace("`\n", " ")
+    headers = []
+    for m in re.finditer(r"-H\s+'((?:[^']|'\\'')*)'", s):       # -H '...'
+        headers.append(m.group(1).replace("'\\''", "'").strip())
+    for m in re.finditer(r'-H\s+"((?:[^"\\]|\\.)*)"', s):       # -H "..."
+        headers.append(m.group(1).replace('\\"', '"').strip())
+    if not any(h.lower().startswith("cookie:") for h in headers):
+        cm = (re.search(r"(?:-b|--cookie)\s+'((?:[^']|'\\'')*)'", s)
+              or re.search(r'(?:-b|--cookie)\s+"((?:[^"\\]|\\.)*)"', s))
+        if cm:
+            headers.append("cookie: " + cm.group(1).replace("'\\''", "'").strip())
+    return "\n".join(headers)
+
+
+def _normalize_headers_input(text):
+    """Принимает либо сырые Request Headers, либо вывод 'Copy as cURL'."""
+    t = (text or "").strip()
+    is_curl = bool(re.match(r"\s*curl\b", t)) or "-H '" in t or '-H "' in t
+    return _curl_to_headers(t) if is_curl else text
+
+
 def setup_yt_headers(headers_raw):
-    """Авторизация YT по сырым заголовкам -> browser.json. С проверкой живым запросом."""
+    """Авторизация YT по сырым заголовкам или cURL -> browser.json. С проверкой живым запросом."""
     from ytmusicapi import setup as yt_setup, YTMusic
+    headers_raw = _normalize_headers_input(headers_raw)
     try:
         yt_setup(filepath=BROWSER_FILE, headers_raw=headers_raw)
     except Exception as e:

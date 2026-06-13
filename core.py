@@ -178,9 +178,8 @@ def load_yt_client():
 
 
 def youtube_logged_in():
-    # OAuth-путь готов, если есть токен и клиент; либо legacy-заголовки
-    if os.path.exists(YT_OAUTH_FILE) and os.path.exists(YT_CLIENT_FILE):
-        return True
+    # Рабочий путь — только заголовки. OAuth ('TV/Limited Input') у ytmusicapi
+    # сейчас отдаёт HTTP 400 на все запросы (upstream #676), поэтому не считаем его.
     return os.path.exists(BROWSER_FILE)
 
 
@@ -255,11 +254,34 @@ def _store_yt_token(token, cred):
 
 
 def setup_yt_headers(headers_raw):
-    """Legacy fallback: авторизация YT по сырым заголовкам -> browser.json."""
+    """Авторизация YT по сырым заголовкам -> browser.json. С проверкой живым запросом."""
     from ytmusicapi import setup as yt_setup, YTMusic
-    yt_setup(filepath=BROWSER_FILE, headers_raw=headers_raw)
-    YTMusic(BROWSER_FILE)   # валидация
+    try:
+        yt_setup(filepath=BROWSER_FILE, headers_raw=headers_raw)
+    except Exception as e:
+        _rm(BROWSER_FILE)
+        raise RuntimeError(
+            "Не разобрал заголовки. Нужны именно Request Headers (key: value), "
+            "скопированные целиком. " + str(e))
+    # реальный запрос — убедиться, что cookie/авторизация рабочие
+    try:
+        yt = YTMusic(BROWSER_FILE)
+        yt.search("test", filter="songs", limit=1)
+    except Exception as e:
+        _rm(BROWSER_FILE)
+        raise RuntimeError(
+            "Заголовки сохранились, но запрос к YouTube не прошёл — скорее всего "
+            "в них нет валидной cookie или они устарели. Скопируй Request Headers "
+            "заново из POST-запроса к music.youtube.com. Детали: " + str(e))
     return True
+
+
+def _rm(path):
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 
 def _make_yt_client():
@@ -272,10 +294,9 @@ def _make_yt_client():
     from ytmusicapi import YTMusic
     if os.path.exists(BROWSER_FILE):
         return YTMusic(BROWSER_FILE)
-    cid, csec = load_yt_client()
-    if os.path.exists(YT_OAUTH_FILE) and cid and csec:
-        return YTMusic(YT_OAUTH_FILE, oauth_credentials=_oauth_credentials(cid, csec))
-    raise RuntimeError("Нет авторизации YouTube Music.")
+    raise RuntimeError(
+        "Нет рабочей авторизации YouTube Music. Войди по заголовкам "
+        "(OAuth сейчас не работает — баг ytmusicapi).")
 
 
 # ============================================================

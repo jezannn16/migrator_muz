@@ -113,7 +113,7 @@
     <div style="background:rgba(255,204,0,.12);border:1px solid var(--warn);border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#ffe08a">
       ⚠ Рабочий способ — <b>вход по заголовкам</b>. Google OAuth у ytmusicapi сейчас отдаёт HTTP 400 на все запросы (баг библиотеки).
     </div>
-    <p class="hint">Вход по заголовкам: открой <a href="https://music.youtube.com" target="_blank">music.youtube.com</a> залогиненным → <b>F12</b> → вкладка <b>Network</b> → в фильтр впиши <code>browse</code> → кликни любой запрос <code>/browse</code> → <b>Headers</b> → блок <b>Request Headers</b> → скопируй весь блок сюда.</p>
+    <p class="hint">Открой <a href="https://music.youtube.com" target="_blank">music.youtube.com</a> залогиненным → <b>F12</b> → вкладка <b>Network</b> → в фильтр впиши <code>browse</code> → <b>включи воспроизведение любого трека</b> (чтобы появились запросы) → правый клик по запросу <code>/browse</code> (метод POST) → <b>Copy → Copy request headers</b> → вставь сюда. При сохранении проверю запросом — если cookie невалидна, сразу скажу.</p>
     <label>Request Headers</label>
     <textarea id="ytHeaders" placeholder="accept: */*&#10;authorization: SAPISIDHASH ...&#10;cookie: VISITOR_INFO1_LIVE=...; ..."></textarea>
     <div style="margin-top:12px"><button class="yt" id="btnYtManual">Войти по заголовкам</button></div>

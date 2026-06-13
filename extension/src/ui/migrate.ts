@@ -1,13 +1,15 @@
 import { ytIsLoggedIn } from "../auth/yt";
 import { yandexIsLoggedIn } from "../auth/yandex";
 import { searchSongs, createPlaylist, addPlaylistItem } from "../yt/api";
-import { getLikedTracks } from "../yandex/api";
 import { loadMigState, saveMigState } from "../storage/state";
 import { runMigration, MigrationDeps, Progress } from "../engine/migrate";
+import { buildSources } from "../engine/sources";
 
 const $ = (id: string) => document.getElementById(id)!;
-const STATE_KEY = "state_likes";
 let stopFlag = false;
+let accMisses: { ya: string; reason: string }[] = [];
+let lastProgress: Progress | null = null;
+const summary: string[] = [];
 
 async function refreshAuth() {
   const yt = await ytIsLoggedIn();
@@ -40,38 +42,74 @@ $("start").addEventListener("click", async () => {
     $("startMsg").textContent = "Сначала вход в оба сервиса.";
     return;
   }
+  const sel = {
+    likes: ($("selLikes") as HTMLInputElement).checked,
+    playlists: ($("selPlaylists") as HTMLInputElement).checked,
+    albums: ($("selAlbums") as HTMLInputElement).checked,
+    likesName: ($("plName") as HTMLInputElement).value,
+  };
+  if (!sel.likes && !sel.playlists && !sel.albums) {
+    $("startMsg").textContent = "Выбери хотя бы один источник.";
+    return;
+  }
+
   stopFlag = false;
+  accMisses = [];
+  summary.length = 0;
+  $("srcSummary").textContent = "";
+  $("startMsg").textContent = "";
   $("prog").classList.remove("hidden");
   $("start").classList.add("hidden");
   $("stop").classList.remove("hidden");
   ($("stop") as HTMLButtonElement).textContent = "■ Остановить";
 
-  const deps: MigrationDeps = {
-    getTracks: getLikedTracks,
-    search: searchSongs,
-    createPlaylist: (t, d) => createPlaylist(t, d, "PRIVATE"),
-    addItem: addPlaylistItem,
-    loadState: () => loadMigState(STATE_KEY),
-    saveState: (s) => saveMigState(STATE_KEY, s),
-  };
+  const threshold = parseFloat(($("thr") as HTMLInputElement).value);
+  const reset = ($("reset") as HTMLInputElement).checked;
 
-  await runMigration(
-    deps,
-    {
-      playlistName: ($("plName") as HTMLInputElement).value.trim() || "Yandex Likes",
-      playlistDesc: "Импорт лайков из Яндекс.Музыки",
-      threshold: parseFloat(($("thr") as HTMLInputElement).value),
-      sleepMs: 400,
-      reset: ($("reset") as HTMLInputElement).checked,
-    },
-    render,
-    () => stopFlag,
-  );
+  let sources;
+  try {
+    $("srcName").textContent = "Получаю список источников…";
+    sources = await buildSources(sel);
+  } catch (e) {
+    $("srcName").textContent = "ОШИБКА источников: " + (e as Error).message;
+    finishRun();
+    return;
+  }
 
+  for (let i = 0; i < sources.length; i++) {
+    if (stopFlag) break;
+    const s = sources[i];
+    $("srcName").textContent = `Источник ${i + 1}/${sources.length}: ${s.playlistName}`;
+    const deps: MigrationDeps = {
+      getTracks: s.getTracks,
+      search: searchSongs,
+      createPlaylist: (t, d) => createPlaylist(t, d, "PRIVATE"),
+      addItem: addPlaylistItem,
+      loadState: () => loadMigState(s.key),
+      saveState: (st) => saveMigState(s.key, st),
+    };
+    await runMigration(
+      deps,
+      { playlistName: s.playlistName, playlistDesc: "Импорт из Яндекс.Музыки", threshold, sleepMs: 400, reset },
+      render,
+      () => stopFlag,
+    );
+    if (lastProgress) {
+      accMisses.push(...lastProgress.misses);
+      summary.push(`✓ ${s.playlistName} — найдено ${lastProgress.matched}/${lastProgress.total}`);
+      $("srcSummary").innerHTML = summary.map(esc).join("<br>");
+    }
+  }
+
+  finishRun();
+});
+
+function finishRun() {
   $("stop").classList.add("hidden");
   $("start").classList.remove("hidden");
   ($("start") as HTMLButtonElement).textContent = "▶ Запустить снова";
-});
+  $("srcName").textContent = stopFlag ? "Остановлено." : "Готово.";
+}
 
 const PHASES: Record<string, string> = {
   idle: "ожидание", fetching: "выгрузка", creating: "создание плейлиста",
@@ -79,6 +117,7 @@ const PHASES: Record<string, string> = {
 };
 
 function render(p: Progress) {
+  lastProgress = p;
   $("phase").textContent = PHASES[p.phase] ?? p.phase;
   $("sTotal").textContent = String(p.total);
   $("sProc").textContent = String(p.processed);
@@ -104,10 +143,11 @@ function render(p: Progress) {
     $("plLink").innerHTML =
       `<a href="https://music.youtube.com/playlist?list=${p.playlistId}" target="_blank">Открыть плейлист ↗</a>`;
   }
-  if (p.misses.length) {
+  const allMisses = [...accMisses, ...p.misses];
+  if (allMisses.length) {
     $("missCard").classList.remove("hidden");
-    ($("missBody") as HTMLElement).innerHTML = p.misses
-      .slice(-300)
+    ($("missBody") as HTMLElement).innerHTML = allMisses
+      .slice(-400)
       .map((m) => `<tr><td>${esc(m.ya)}</td><td>${esc(m.reason)}</td></tr>`)
       .join("");
   }

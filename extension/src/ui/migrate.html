@@ -51,9 +51,16 @@
   </div>
 
   <div class="card">
-    <div class="step">2 · Настройки</div>
+    <div class="step">2 · Что переносим</div>
+    <label><input type="checkbox" id="selLikes" checked> Лайки</label>
+    <label><input type="checkbox" id="selPlaylists"> Плейлисты (каждый → одноимённый плейлист)</label>
+    <label><input type="checkbox" id="selAlbums"> Лайкнутые альбомы → плейлист «Yandex Albums»</label>
+  </div>
+
+  <div class="card">
+    <div class="step">3 · Настройки</div>
     <div class="row">
-      <div><label>Название плейлиста</label><input type="text" id="plName" value="Yandex Likes"></div>
+      <div><label>Имя плейлиста для лайков</label><input type="text" id="plName" value="Yandex Likes"></div>
       <div><label>Строгость: <span id="thrVal">0.62</span></label>
         <input type="range" id="thr" min="0.45" max="0.85" step="0.01" value="0.62" style="width:100%"></div>
     </div>
@@ -61,13 +68,15 @@
   </div>
 
   <div class="card" style="text-align:center">
-    <button id="start" style="font-size:16px;padding:13px 36px">▶ Перенести лайки</button>
+    <button id="start" style="font-size:16px;padding:13px 36px">▶ Перенести</button>
     <button id="stop" class="ghost hidden" style="font-size:16px;padding:13px 36px">■ Остановить</button>
     <div class="hint" id="startMsg"></div>
   </div>
 
   <div class="card hidden" id="prog">
     <div class="step">Прогресс<span class="badge" id="phase">—</span></div>
+    <div class="hint" id="srcSummary"></div>
+    <div class="cur" id="srcName" style="color:var(--txt);font-weight:600"></div>
     <div class="bar"><span id="fill"></span></div>
     <div class="stats">
       <div class="stat"><b id="sTotal">0</b><span>всего</span></div>

@@ -285,11 +285,10 @@ def _rm(path):
 
 
 def _make_yt_client():
-    """Строим YTMusic из доступной авторизации.
+    """Строим YTMusic из браузерной авторизации (browser.json).
 
-    Заголовки (browser.json) приоритетнее OAuth: OAuth-клиент 'TV/Limited Input'
-    у ytmusicapi сейчас отдаёт HTTP 400 на все запросы (upstream issue #676),
-    поэтому браузерная авторизация — основной рабочий путь.
+    Только заголовки: OAuth-клиент 'TV/Limited Input' у ytmusicapi сейчас отдаёт
+    HTTP 400 на все запросы (upstream issue #676), поэтому в рабочем пути не используется.
     """
     from ytmusicapi import YTMusic
     if os.path.exists(BROWSER_FILE):
@@ -431,21 +430,27 @@ DEFAULTS = {
 }
 
 
-def run_migration(settings, status, stop_event):
-    """Главный прогон. Авторизация берётся из сохранённых файлов."""
+def run_migration(settings, status, stop_event, ya=None, yt=None):
+    """Главный прогон. Авторизация берётся из сохранённых файлов.
+
+    ya/yt можно передать напрямую (инъекция для тестов); иначе строятся из
+    сохранённой авторизации.
+    """
     cfg = dict(DEFAULTS)
     cfg.update(settings or {})
     try:
         status.update(phase="connecting", running=True, error=None)
 
-        ya_token = load_yandex_token()
-        if not ya_token:
-            raise RuntimeError("Нет авторизации Яндекса (войди на шаге 1).")
-        status.log("Подключение к Яндексу...")
-        ya = Client(ya_token).init()
+        if ya is None:
+            ya_token = load_yandex_token()
+            if not ya_token:
+                raise RuntimeError("Нет авторизации Яндекса (войди на шаге 1).")
+            status.log("Подключение к Яндексу...")
+            ya = Client(ya_token).init()
 
-        status.log("Подключение к YT Music...")
-        yt = _make_yt_client()
+        if yt is None:
+            status.log("Подключение к YT Music...")
+            yt = _make_yt_client()
 
         if cfg["reset"]:
             reset_state()

@@ -53,13 +53,17 @@ def _cand(title, artist, dur=200, vid=None):
 
 class FakeYt:
     """matches: dict title->cand. search вернёт [cand], если title встречается в запросе."""
-    def __init__(self, matches):
+    def __init__(self, matches, fail_create=0):
         self._matches = matches
+        self._fail_create = fail_create   # сколько первых create_playlist уронить
         self.created = []
         self.added = []       # порядок добавленных videoId
         self.liked = []
 
     def create_playlist(self, name, desc, privacy_status="PRIVATE"):
+        if self._fail_create > 0:
+            self._fail_create -= 1
+            raise RuntimeError("Server returned HTTP 400: Sorry, something went wrong.")
         self.created.append((name, privacy_status))
         return "PLID"
 
@@ -173,6 +177,19 @@ def test_migration_stop_event_halts(tmp_path, monkeypatch):
 
     assert yt.added == []
     assert s.snapshot()["phase"] == "stopped"
+
+
+def test_migration_retries_transient_create_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(core.time, "sleep", lambda *a, **k: None)   # без задержек
+    tracks = {"1": FakeTrack("1", "Alpha", "A")}
+    ya = FakeYa([FakeShort("1", "1")], tracks)
+    yt = FakeYt({"Alpha": _cand("Alpha", "A")}, fail_create=1)  # первый create падает
+
+    s = _run(ya, yt, tmp_path, monkeypatch)
+
+    assert yt.created == [("Yandex Likes", "PRIVATE")]   # со второй попытки создан
+    assert yt.added == ["vid_Alpha"]
+    assert s.snapshot()["phase"] == "done"
 
 
 def test_migration_done_phase_and_reports(tmp_path, monkeypatch):

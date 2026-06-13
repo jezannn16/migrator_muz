@@ -489,8 +489,10 @@ def run_migration(settings, status, stop_event, ya=None, yt=None):
         status.log(f"Всего лайков: {total}")
 
         if not state["playlist_id"]:
-            pid = yt.create_playlist(cfg["playlist_name"], cfg["playlist_desc"],
-                                     privacy_status=cfg["privacy"])
+            pid = _retry(
+                lambda: yt.create_playlist(cfg["playlist_name"], cfg["playlist_desc"],
+                                           privacy_status=cfg["privacy"]),
+                status=status, label="create_playlist")
             state["playlist_id"] = pid
             save_state(state)
             status.log(f"Создан плейлист: {cfg['playlist_name']}")
@@ -542,7 +544,8 @@ def run_migration(settings, status, stop_event, ya=None, yt=None):
                 vid = cand["videoId"]
                 cand_artists = ", ".join(a.get("name", "") for a in (cand.get("artists") or []))
                 try:
-                    yt.add_playlist_items(playlist_id, [vid], duplicates=False)
+                    _retry(lambda: yt.add_playlist_items(playlist_id, [vid], duplicates=False),
+                           status=status, label="add")
                     if cfg["also_like"]:
                         yt.rate_song(vid, "LIKE")
                 except Exception as e:
@@ -574,6 +577,20 @@ def run_migration(settings, status, stop_event, ya=None, yt=None):
     except Exception as e:
         status.update(phase="error", running=False, error=str(e))
         status.log(f"ОШИБКА: {e}")
+
+
+def _retry(fn, status=None, label="", tries=3, base=1.0):
+    """Повторяет fn при ошибке (транзиентные 400/сеть). Возвращает результат или кидает последнюю ошибку."""
+    last = None
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception as e:
+            last = e
+            if status and i < tries - 1:
+                status.log(f"  {label}: ошибка ({e}); ретрай {i + 1}/{tries - 1}")
+                time.sleep(base * (i + 1))
+    raise last
 
 
 def _mark_miss(state, status, yid, label, reason):

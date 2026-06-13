@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Перенос лайков Яндекс → YT Music</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --card2:#1f232c; --line:#2a2f3a;
+    --txt:#e7eaf0; --muted:#9aa3b2; --accent:#ff3b30; --accent2:#ff5b54;
+    --ok:#34c759; --warn:#ffcc00; --yt:#ff0033; --ya:#ffdb4d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:15px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:860px;margin:0 auto;padding:28px 18px 80px}
+  h1{font-size:24px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px;margin-bottom:16px}
+  .step{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:17px;font-weight:600}
+  .num{display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:50%;background:var(--card2);
+    border:1px solid var(--line);font-size:14px;flex:0 0 auto}
+  .num.done{background:var(--ok);border-color:var(--ok);color:#04210e}
+  label{display:block;color:var(--muted);font-size:13px;margin:12px 0 6px}
+  input[type=text],input[type=password],textarea,select{
+    width:100%;background:var(--card2);border:1px solid var(--line);
+    color:var(--txt);border-radius:9px;padding:11px 12px;font:inherit;outline:none}
+  textarea{min-height:120px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:160px}
+  button{cursor:pointer;border:none;border-radius:9px;padding:11px 18px;
+    font:inherit;font-weight:600;color:#fff;background:var(--accent);transition:.15s}
+  button:hover{background:var(--accent2)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+  button.ghost:hover{border-color:var(--accent)}
+  .btnlink{display:inline-block;text-decoration:none;background:var(--card2);
+    border:1px solid var(--line);color:var(--txt);border-radius:9px;
+    padding:11px 16px;font-weight:600}
+  .btnlink:hover{border-color:var(--accent)}
+  .hint{color:var(--muted);font-size:13px;margin:8px 0 0}
+  .hint b{color:var(--txt)}
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--accent2);font-size:13px}
+  .msg{font-size:13px;margin-top:10px;min-height:18px}
+  .msg.ok{color:var(--ok)} .msg.err{color:var(--accent2)}
+  .badge{font-size:12px;padding:2px 9px;border-radius:20px;background:var(--card2);
+    border:1px solid var(--line);color:var(--muted);margin-left:auto}
+  .badge.ok{background:rgba(52,199,89,.15);border-color:var(--ok);color:var(--ok)}
+  .slider-val{color:var(--txt);font-weight:600}
+  /* progress */
+  .bar{height:12px;background:var(--card2);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+  .bar>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .stat{flex:1;min-width:90px;background:var(--card2);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;text-align:center}
+  .stat b{display:block;font-size:22px}
+  .stat span{color:var(--muted);font-size:12px}
+  .stat.ok b{color:var(--ok)} .stat.miss b{color:var(--accent2)}
+  .cur{color:var(--muted);font-size:13px;margin:6px 0;min-height:18px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .log{background:#0b0d11;border:1px solid var(--line);border-radius:10px;
+    padding:12px;height:220px;overflow:auto;font-family:ui-monospace,Consolas,monospace;
+    font-size:12px;color:#c7cdd8;white-space:pre-wrap}
+  .log .ok{color:var(--ok)} .log .miss{color:var(--warn)} .log .err{color:var(--accent2)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  .hidden{display:none}
+  .toplinks{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Перенос лайков → YouTube Music</h1>
+  <p class="sub">Из Яндекс.Музыки, в том же порядке, без лазанья в код.</p>
+
+  <!-- ШАГ 1: авторизация YT -->
+  <div class="card">
+    <div class="step"><span class="num" id="n1">1</span> Авторизация YouTube Music
+      <span class="badge" id="badge1">не готово</span></div>
+    <p class="hint">Открой <b><a href="https://music.youtube.com" target="_blank">music.youtube.com</a></b> залогиненным →
+      <b>F12</b> → вкладка <b>Network</b> → фильтр <code>browse</code> → кликни любой запрос
+      <code>/browse</code> → <b>Headers</b> → <b>Request Headers</b> → скопируй всё и вставь сюда.</p>
+    <details><summary>Подробнее, что копировать</summary>
+      <p class="hint">Нужны «сырые» заголовки запроса целиком (там будут <code>cookie</code>, <code>authorization</code> и др.).
+      Выдели весь блок Request Headers, скопируй, вставь в поле ниже.</p></details>
+    <label>Заголовки запроса</label>
+    <textarea id="ytHeaders" placeholder="accept: */*&#10;authorization: SAPISIDHASH ...&#10;cookie: VISITOR_INFO1_LIVE=...; ..."></textarea>
+    <div style="margin-top:12px"><button id="btnYt">Сохранить авторизацию YT</button></div>
+    <div class="msg" id="msgYt"></div>
+  </div>
+
+  <!-- ШАГ 2: токен Яндекса -->
+  <div class="card">
+    <div class="step"><span class="num" id="n2">2</span> Токен Яндекса
+      <span class="badge" id="badge2">не введён</span></div>
+    <p class="hint">Нажми кнопку, авторизуйся, тебя перекинет на адрес с <code>#access_token=…</code> —
+      скопируй значение токена и вставь сюда.</p>
+    <div class="toplinks">
+      <a class="btnlink" id="yaLink" href="#" target="_blank">Получить токен Яндекса →</a>
+    </div>
+    <label>Access token</label>
+    <input type="password" id="yaToken" placeholder="AQAAAA..." autocomplete="off">
+    <p class="hint">Токен = доступ к аккаунту. Хранится только в этой вкладке, на сервер уходит лишь на время переноса.</p>
+  </div>
+
+  <!-- ШАГ 3: настройки -->
+  <div class="card">
+    <div class="step"><span class="num">3</span> Настройки</div>
+    <div class="row">
+      <div>
+        <label>Название плейлиста</label>
+        <input type="text" id="plName" value="Yandex Likes">
+      </div>
+      <div>
+        <label>Приватность</label>
+        <select id="privacy">
+          <option value="PRIVATE">Приватный</option>
+          <option value="UNLISTED">По ссылке</option>
+          <option value="PUBLIC">Публичный</option>
+        </select>
+      </div>
+    </div>
+    <label>Строгость совпадения: <span class="slider-val" id="thrVal">0.62</span>
+      <span class="hint" style="display:inline">(выше — точнее, но больше уйдёт в «не найдено»)</span></label>
+    <input type="range" id="threshold" min="0.45" max="0.85" step="0.01" value="0.62" style="width:100%">
+    <div class="row" style="margin-top:12px;align-items:center">
+      <div style="flex:0 0 auto">
+        <label style="margin:0"><input type="checkbox" id="alsoLike"> Ещё и жать «Мне нравится»</label>
+      </div>
+      <div style="flex:0 0 auto">
+        <label style="margin:0"><input type="checkbox" id="reset"> Начать заново (сбросить прогресс)</label>
+      </div>
+    </div>
+    <div class="msg" id="resumeMsg"></div>
+  </div>
+
+  <!-- СТАРТ -->
+  <div class="card" style="text-align:center">
+    <button id="btnStart" style="font-size:17px;padding:14px 40px">▶ Старт переноса</button>
+    <button id="btnStop" class="ghost hidden" style="font-size:17px;padding:14px 40px">■ Остановить</button>
+    <div class="msg" id="msgStart"></div>
+  </div>
+
+  <!-- ПРОГРЕСС -->
+  <div class="card hidden" id="progressCard">
+    <div class="step"><span class="num">↻</span> Прогресс
+      <span class="badge" id="phaseBadge">—</span></div>
+    <div class="bar"><span id="barFill"></span></div>
+    <div class="stats">
+      <div class="stat"><b id="stTotal">0</b><span>всего</span></div>
+      <div class="stat"><b id="stProc">0</b><span>обработано</span></div>
+      <div class="stat ok"><b id="stOk">0</b><span>найдено</span></div>
+      <div class="stat miss"><b id="stMiss">0</b><span>не найдено</span></div>
+    </div>
+    <div class="cur" id="curTrack"></div>
+    <div class="toplinks" id="resultLinks"></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- НЕ НАЙДЕННЫЕ -->
+  <div class="card hidden" id="missesCard">
+    <div class="step"><span class="num">!</span> Не найдено — добей руками</div>
+    <table><thead><tr><th>Трек (Яндекс)</th><th>Причина</th></tr></thead>
+      <tbody id="missesBody"></tbody></table>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let poll = null;
+
+// восстановление токена из localStorage (удобство, не безопасность)
+$('#yaToken').value = localStorage.getItem('yaToken') || '';
+$('#yaToken').addEventListener('input', e => localStorage.setItem('yaToken', e.target.value));
+
+$('#threshold').addEventListener('input', e => $('#thrVal').textContent = e.target.value);
+
+async function refreshState(){
+  const r = await fetch('/api/state'); const s = await r.json();
+  $('#yaLink').href = s.yandex_oauth_url;
+  setBadge1(s.yt_auth_ready);
+  if(s.resume_available){
+    $('#resumeMsg').textContent = 'Найден прошлый прогресс — продолжит с места (или включи «Начать заново»).';
+    $('#resumeMsg').className = 'msg ok';
+  }
+  if(s.job && s.job.running){ showProgress(); startPolling(); }
+}
+function setBadge1(ok){
+  $('#badge1').textContent = ok ? 'готово' : 'не готово';
+  $('#badge1').className = ok ? 'badge ok' : 'badge';
+  $('#n1').className = ok ? 'num done' : 'num';
+}
+$('#yaToken').addEventListener('input', e=>{
+  const ok = e.target.value.trim().length > 10;
+  $('#badge2').textContent = ok ? 'введён' : 'не введён';
+  $('#badge2').className = ok ? 'badge ok' : 'badge';
+  $('#n2').className = ok ? 'num done' : 'num';
+});
+
+// ---- сохранить авторизацию YT ----
+$('#btnYt').addEventListener('click', async ()=>{
+  const headers = $('#ytHeaders').value.trim();
+  const m = $('#msgYt');
+  if(!headers){ m.textContent='Вставь заголовки.'; m.className='msg err'; return; }
+  m.textContent='Проверяю...'; m.className='msg';
+  $('#btnYt').disabled = true;
+  try{
+    const r = await fetch('/api/yt-auth',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({headers})});
+    const j = await r.json();
+    if(j.ok){ m.textContent='✓ Авторизация сохранена.'; m.className='msg ok'; setBadge1(true); }
+    else{ m.textContent='Ошибка: '+j.error; m.className='msg err'; }
+  }catch(e){ m.textContent='Ошибка сети: '+e; m.className='msg err'; }
+  $('#btnYt').disabled = false;
+});
+
+// ---- старт ----
+$('#btnStart').addEventListener('click', async ()=>{
+  const m = $('#msgStart');
+  const ya_token = $('#yaToken').value.trim();
+  if(!ya_token){ m.textContent='Введи токен Яндекса (шаг 2).'; m.className='msg err'; return; }
+  const body = {
+    ya_token,
+    playlist_name: $('#plName').value.trim() || 'Yandex Likes',
+    privacy: $('#privacy').value,
+    threshold: parseFloat($('#threshold').value),
+    also_like: $('#alsoLike').checked,
+    reset: $('#reset').checked,
+  };
+  m.textContent='Запускаю...'; m.className='msg';
+  const r = await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)});
+  const j = await r.json();
+  if(!j.ok){ m.textContent='Ошибка: '+j.error; m.className='msg err'; return; }
+  m.textContent=''; showProgress(); startPolling();
+});
+
+$('#btnStop').addEventListener('click', async ()=>{
+  await fetch('/api/stop',{method:'POST'});
+  $('#btnStop').textContent='Останавливаю...';
+});
+
+function showProgress(){
+  $('#progressCard').classList.remove('hidden');
+  $('#btnStart').classList.add('hidden');
+  $('#btnStop').classList.remove('hidden');
+  $('#progressCard').scrollIntoView({behavior:'smooth'});
+}
+
+const PHASES = {idle:'ожидание',connecting:'подключение',fetching:'выгрузка лайков',
+  matching:'перенос',done:'готово',error:'ошибка',stopped:'остановлено'};
+
+function startPolling(){
+  if(poll) clearInterval(poll);
+  poll = setInterval(tick, 1000); tick();
+}
+async function tick(){
+  const r = await fetch('/api/status'); const s = await r.json();
+  $('#phaseBadge').textContent = PHASES[s.phase] || s.phase;
+  $('#stTotal').textContent = s.total;
+  $('#stProc').textContent = s.processed;
+  $('#stOk').textContent = s.matched;
+  $('#stMiss').textContent = s.missed;
+  const pct = s.total ? Math.round(s.processed/s.total*100) : 0;
+  $('#barFill').style.width = pct+'%';
+  $('#curTrack').textContent = s.current ? ('Сейчас: '+s.current) : '';
+
+  // лог с подсветкой
+  const log = $('#log');
+  const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+  log.innerHTML = (s.log||[]).map(l=>{
+    let c=''; if(l.startsWith('OK'))c='ok'; else if(l.startsWith('MISS'))c='miss';
+    else if(l.includes('ERR')||l.includes('ОШИБКА'))c='err';
+    return `<div class="${c}">${esc(l)}</div>`;
+  }).join('');
+  if(atBottom) log.scrollTop = log.scrollHeight;
+
+  // ссылки на результат
+  const links = $('#resultLinks'); links.innerHTML='';
+  if(s.playlist_url) links.innerHTML += `<a class="btnlink" href="${s.playlist_url}" target="_blank">Открыть плейлист ↗</a>`;
+  if(s.phase==='done'||s.phase==='stopped'||s.missed>0){
+    links.innerHTML += ` <a class="btnlink" href="/api/download/report" >Скачать report.csv</a>`;
+    links.innerHTML += ` <a class="btnlink" href="/api/download/misses" >Скачать misses.csv</a>`;
+  }
+
+  // таблица misses
+  if(s.misses && s.misses.length){
+    $('#missesCard').classList.remove('hidden');
+    $('#missesBody').innerHTML = s.misses.slice(-300).map(x=>
+      `<tr><td>${esc(x.ya)}</td><td>${esc(x.reason)}</td></tr>`).join('');
+  }
+
+  if(!s.running && s.phase!=='idle'){
+    clearInterval(poll); poll=null;
+    $('#btnStop').classList.add('hidden');
+    $('#btnStart').classList.remove('hidden');
+    $('#btnStart').textContent = '▶ Запустить снова';
+    if(s.phase==='error') $('#msgStart').innerHTML = '<span class="msg err">Ошибка: '+esc(s.error||'')+'</span>';
+  }
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+refreshState();
+</script>
+</body>
+</html>
